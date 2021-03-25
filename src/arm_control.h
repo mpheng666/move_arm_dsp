@@ -16,7 +16,6 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
-
 #include "serial/serial.h"
 
 using std::cin;

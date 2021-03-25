@@ -5,17 +5,17 @@ int mode = -1, i_2 = 0, j_2 = 0, swing_flag = 0, swing_lock = 0;
 stringstream ss;
 string dsp_cmd, s, ser_feedback;
 string dsp_array[100];
-double h_prev = 0.0, swing_wait_period = 0.0;
+double h_prev = 0.0;
 double move_array[5];
-double va_array[6];
 std_msgs::String result;
+std_msgs::Int32 status;
 
-void write_callback(const std_msgs::String::ConstPtr &msg)
-{
-	ROS_INFO_STREAM(msg->data);
-	ser.write(msg->data);
-	ser.write("\r\n");
-}
+// void write_callback(const std_msgs::String::ConstPtr &msg)
+// {
+// 	ROS_INFO_STREAM(msg->data);
+// 	ser.write(msg->data);
+// 	ser.write("\r\n");
+// }
 
 void move_cb(const std_msgs::Float64MultiArray &move_msg)
 {
@@ -25,15 +25,6 @@ void move_cb(const std_msgs::Float64MultiArray &move_msg)
 		sleep(0.05);
 	}
 	mode = int(move_array[0]);
-	// printf("mode: %d", mode);
-}
-
-void va_cb(const std_msgs::Float64MultiArray &va_msg)
-{
-	for (int i = 0; i < 6; i++)
-	{
-		va_array[i] = va_msg.data[i];
-	}
 }
 
 void execute_kinematic_h(double h, double base_angle, double cutter_angle)
@@ -55,10 +46,8 @@ void execute_kinematic_h(double h, double base_angle, double cutter_angle)
 	}
 	else
 	{
-		// joint_1: -100 ~ 100, X(V38): -100 ~ 100
 		double joint_1 = base_angle;
 		printf("joint_1: %f \n", joint_1);
-		// joint_4: -70 ~ 70, Y(V41): -70 ~ 70
 		double joint_4 = cutter_angle;
 		printf("joint_4: %f \n", joint_4);
 
@@ -72,10 +61,8 @@ void execute_kinematic_h(double h, double base_angle, double cutter_angle)
 		printf("phi: %f \n", phi);
 		double alpha = (180.0 / PI) * atan(h / d);
 		printf("alpha: %f \n", alpha);
-		// joint_2: 10 ~ 85, Z(V40): -65 ~ 10
 		double joint_2 = phi - abs(alpha);
 		printf("joint_2: %f \n", joint_2);
-		// joint_3: 37 ~ 127, Y(V39): -10 ~ 80
 		double joint_3 = theta;
 		printf("joint_3: %f \n", joint_3);
 
@@ -105,22 +92,18 @@ void execute_kinematic_h(double h, double base_angle, double cutter_angle)
 		ss << "V38=" << theta_x;
 		dsp_array[0] = ss.str();
 		ss.str("");
-		// printf("theta_x(V38): %d \n", theta_x);
 		int theta_z = joint_2 - 75;
 		ss << "V40=" << theta_z;
 		dsp_array[1] = ss.str();
 		ss.str("");
-		// printf("theta_z(V40): %d \n", theta_z);
 		int theta_y = joint_3 - 47.0;
 		ss << "V39=" << theta_y;
 		dsp_array[2] = ss.str();
 		ss.str("");
-		// printf("theta_y(V39): %d \n", theta_y);
 		int theta_r = joint_4;
 		ss << "V41=" << theta_r;
 		dsp_array[3] = ss.str();
 		ss.str("");
-		// printf("theta_r(V41): %d \n", theta_r);
 		dsp_array[4] = "V50=1";
 		ss.str("");
 		h_prev = h;
@@ -224,17 +207,14 @@ void execute_kinematic_d(double d, double base_angle, double cutter_angle)
 
 void execute_swing(double swing_max, double swing_min, double swing_number)
 {
-	// printf("Swing max: %f", swing_max);
-	// printf("Swing min: %f", swing_min);
 	if (swing_max > joint_1_max || swing_min < joint_1_min)
 	{
 		ROS_INFO_STREAM("Please enter swing value (-110 ~ 110)!");
 		j_2 = 0;
 	}
+
 	else
 	{
-		swing_wait_period = (abs(swing_max - swing_min) / 30.0) + 1.0;
-		// cout << "swing_wait_period" << swing_wait_period;
 		int swing_index = 0;
 		for (int j = 0; j < swing_number; j++)
 		{
@@ -264,19 +244,22 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "move_arm");
 	ros::NodeHandle nh;
 
-	ros::Subscriber write_sub = nh.subscribe("write", 1000, write_callback);
+	// ros::Subscriber write_sub = nh.subscribe("write", 1000, write_callback);
 	ros::Subscriber move_sub = nh.subscribe("move_input", 10, &move_cb);
-	ros::Subscriber va_sub = nh.subscribe("va_value", 10, &va_cb);
-	ros::Publisher read_pub = nh.advertise<std_msgs::String>("read", 1000);
-	// ros::Publisher cutter_speed_pub = nh.advertise<std_msgs::Float64>("/cutter_speed_perecnt", 100);
-	// std_msgs::Float64 cutter_speed_to_nano;
+	// ros::Publisher read_pub = nh.advertise<std_msgs::String>("read", 1000);
+	ros::Publisher status_pub = nh.advertise<std_msgs::Int32>("task_status", 10);
 
 	std::string serial_port;
 	int baud_rate;
 
-	if (nh.getParam("serial_port", serial_port) == false)
+	if (nh.getParam("serial_port", serial_port))
 	{
-		serial_port = "/dev/ttyUSB0";
+		ROS_INFO("param ok!");
+		ROS_INFO("serial_port: [%s]" , serial_port.c_str());
+	}
+	else
+	{
+		serial_port = "/dev/siix_dsp";
 	}
 
 	if (nh.getParam("baud_rate", baud_rate) == false)
@@ -363,8 +346,9 @@ int main(int argc, char **argv)
 			break;
 		case 101:
 			ROS_INFO_STREAM("Stopping...");
-			ser.write("STOPA");
-			ser.write("\r\n");
+			dsp_array[0] = "FA";
+			dsp_array[1] = "Q";
+			j_2 = 2;
 			mode = -1;
 			break;
 		default:
@@ -374,23 +358,25 @@ int main(int argc, char **argv)
 		{
 			result.data = ser.read(ser.available());
 			ROS_INFO_STREAM("Read: " << result.data);
-			read_pub.publish(result);
+			// read_pub.publish(result);
 			// cout << "Result data: " << result.data << endl;
 			std::string feedback_s = result.data;
-			if (swing_lock == 1)
+			if (feedback_s.find("123") != std::string::npos)
 			{
-				if (feedback_s.find("123") != std::string::npos)
+				status.data = 1;
+				status_pub.publish(status);
+				if (swing_lock == 1)
 				{
-					cout << "Received feedback!" << endl;
 					swing_lock = 0;
 				}
-				else
-				{
-					cout << "..." << endl;
-				}
+			}
+			else
+			{
+				status.data = 0;
+				status_pub.publish(status);
 			}
 		}
-	ros::spinOnce();
-	loop_rate.sleep();
+		ros::spinOnce();
+		loop_rate.sleep();
 	}
 }
