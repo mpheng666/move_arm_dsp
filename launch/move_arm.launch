@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node pkg="move_arm" type="move_arm" name="move_arm">
+  <node pkg="move_arm" type="move_arm" name="move_arm" output="screen">
     <param name="serial_port" value="/dev/siix_dsp"/>
     <param name="baud_rate" value="9600"/>
   </node>

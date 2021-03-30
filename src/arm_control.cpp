@@ -7,9 +7,9 @@ int mode = -1;
 // i_2 is used for appending dsp_array to dsp_cmd
 int i_2 = 0;
 // j_2 is the number of item in dsp_array
-int j_2 = 0; 
+int j_2 = 0;
 // swing flag = 1 when it is in swing mode
-int swing_flag = 0; 
+int swing_flag = 0;
 // swing lock = 1 to make the next dsp command is sent after the execution is done
 int swing_lock = 0;
 // create stringstream object for writing serial
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
 
 	ros::init(argc, argv, "move_arm");
 	ros::NodeHandle nh;
-	
+
 	// sub to move_input
 	ros::Subscriber move_sub = nh.subscribe("move_input", 10, &move_cb);
 	// ros::Publisher read_pub = nh.advertise<std_msgs::String>("read", 1000);
@@ -269,19 +269,24 @@ int main(int argc, char **argv)
 	int baud_rate;
 
 	// get serial port and baud rate
-	if (nh.getParam("serial_port", serial_port))
+	if (ros::param::has("/move_arm/serial_port"))
 	{
-		ROS_INFO("param ok!");
-		ROS_INFO("serial_port: [%s]" , serial_port.c_str());
+		ros::param::get("/move_arm/serial_port", serial_port);
+		ROS_INFO("serial_port: [%s]", serial_port.c_str());
 	}
 	else
 	{
-		serial_port = "/dev/siix_dsp";
+		serial_port = "/dev/ttyUSB0";
 	}
 
-	if (nh.getParam("baud_rate", baud_rate) == false)
+	if (ros::param::has("/move_arm/baud_rate"))
 	{
-		baud_rate = SERIAL_BAUD_RATE;
+		ros::param::get("/move_arm/baud_rate", baud_rate);
+		ROS_INFO("baud_rate: [%d]", baud_rate);
+	}
+	else
+	{
+		baud_rate = 9600;
 	}
 
 	try
@@ -309,7 +314,7 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(10);
 	while (ros::ok())
-	{	
+	{
 		// condition to check when to transfer dsp cmd to serial port
 		if (j_2 > 0 && i_2 < j_2 && swing_lock == 0)
 		{
