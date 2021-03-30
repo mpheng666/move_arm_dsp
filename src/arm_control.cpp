@@ -228,6 +228,7 @@ void execute_swing(double swing_max, double swing_min, double swing_number)
 
 	else
 	{
+		// passing swing cmd to dsp_array
 		int swing_index = 0;
 		for (int j = 0; j < swing_number; j++)
 		{
@@ -247,7 +248,6 @@ void execute_swing(double swing_max, double swing_min, double swing_number)
 			swing_index++;
 		}
 		j_2 = swing_number * 4;
-		sleep(0.1);
 	}
 }
 
