@@ -10,12 +10,8 @@
 #include <string.h>
 
 #include <std_msgs/Int32.h>
-#include <std_msgs/UInt32.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Float64.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Bool.h>
 #include "serial/serial.h"
 
 using std::cin;
@@ -24,6 +20,7 @@ using std::endl;
 using std::string;
 using std::stringstream;
 
+// physical variables
 #define PI 3.141592
 #define link_1 0.37
 #define link_2 0.38
